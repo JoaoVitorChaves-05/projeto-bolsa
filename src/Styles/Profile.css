@@ -1,0 +1,65 @@
+.form-profile {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.form-profile .form-field:first-child {
+    padding-top: 0;
+}
+
+.form-profile .form-field {
+    display: flex;
+    flex-direction: column;
+    padding-top: 10px;
+
+    width: 80vw;
+    text-align: center;
+}
+
+.form-profile .form-field input {
+    height: 40px;
+    outline: none;
+
+    border-radius: 8px;
+    border: 1px solid black;
+}
+
+.form-profile .form-field:last-child {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-profile .form-field:last-child button {
+    height: 40px;
+    border-radius: 8px;
+    border: none;
+    margin-top: 10px;
+}
+
+.form-profile .form-field:last-child button:first-child {
+    margin-top: 0;
+}
+
+.form-profile .form-field .save-button {
+    background-color: rgb(21, 148, 21);
+    color: white;
+    cursor: pointer;
+}
+
+.form-profile .form-field .exit-button {
+    background: rgb(189, 178, 32);
+    color: white;
+    cursor: pointer;
+}
+
+.form-profile .form-field .exclude-button {
+    background-color: rgb(224, 49, 49);
+    color: white;
+    cursor: pointer;
+}
+
+.form-profile .form-field input:focus {
+    border: 1px solid green;
+}

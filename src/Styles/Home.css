@@ -1,0 +1,25 @@
+main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px;
+}
+
+.main {
+    display: flex;
+    flex-direction: column;
+
+    max-width: 600px;
+    width: 100%;
+
+    text-align: center;
+}
+
+.main h2 {
+    font-size: 1.5rem
+}
+
+.main p {
+    text-align: justify;
+}
+

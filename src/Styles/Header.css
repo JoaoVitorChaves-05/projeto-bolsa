@@ -1,0 +1,15 @@
+.header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: center;
+
+    border-bottom: 2px solid black;
+    height: 10vh;
+}
+
+.header .navigation .nav-item {
+    padding: 5px;
+    text-decoration: none;
+    color: black;
+}
