@@ -20,9 +20,12 @@ const Search = () => {
 
     const fetchData = async (city) => {
         try {
-            const data = await fetch('http://192.168.15.44:8080/api/places?city=' + city)
+            const data = await fetch('http://192.168.15.44:80/api/places?city=' + city)
             .then((response) => response.json())
-            .then((results) => setCards(results))
+            .then((results) => {
+                console.log(results)
+                setCards(results)
+            })
             return data
         }
         catch (error) {
@@ -44,15 +47,15 @@ const Search = () => {
                     <SearchBox initialSearch={searchParams}/>
                 </div>
                 <div className="cards">
-                    {cards ? cards.map((card, index) => (
+                    {cards.length ? cards.map((card, index) => (
                         <Card 
                             key={index}
-                            id={card.id}
+                            id={card.place_details.id}
                             photos={card.photos}
-                            placename={card.placename}
-                            address={card.address}
+                            placename={card.place_details.placename}
+                            address={card.place_details.address}
                         />
-                    )) : <h2>Nenhum local encontrado</h2>}
+                    )) : <h2 className="not-found">Nenhum local encontrado</h2>}
                 </div>
             </main>
             <Footer />

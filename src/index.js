@@ -12,6 +12,7 @@ import SignIn from "./Screens/SignIn.js"
 import SignUp from "./Screens/SignUp.js"
 import Profile from "./Screens/Profile.js"
 import Search from "./Screens/Search.js"
+import Place from './Screens/Place';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
@@ -22,6 +23,7 @@ root.render(
         <Route element={<SignUp />} path="/SignUp" />
         <Route element={<Profile />} path="/Profile" />
         <Route element={<Search />} path="/Search" />
+        <Route element={<Place />} path="/Place" />
     </Routes>
   </BrowserRouter>
 );

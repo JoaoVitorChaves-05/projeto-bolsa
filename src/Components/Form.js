@@ -2,6 +2,8 @@ import '../Styles/Form.css'
 
 import {useState, useEffect} from 'react'
 
+import React from 'react'
+
 const Form = ({signIn}) => {
     const handleType = (e) => e.target.className === 'active' ? null : setIsUser(!isUser)
 
@@ -27,15 +29,12 @@ const Form = ({signIn}) => {
                 },
                 signUp: () => {
                     if (email !== '' && password !== '' && username !== '') {
-                        console.log({email, password, username})
-                        fetch(action, { method: 'POST', body: JSON.stringify({email, password, username}), headers: {
-                            "Content-type": "application/json; charset=UTF-8"
-                        }})
+                        fetch(action, { method: 'POST', body: JSON.stringify({email, password, username}), headers: { "Content-Type": "application/json; charset=UTF-8"}})
                         .then((response) => response.json())
                         .then((response) => {
                             console.log(response)
                             if (response.success) window.location.href = '/SignIn'
-                            else window.alert('Teste')
+                            else window.alert('Erro ao cadastrar!')
                         })
                     } else window.alert('Preencha todos os campos')
                 }
@@ -45,12 +44,14 @@ const Form = ({signIn}) => {
             const controller = {
                 signIn: () => {
                     if (email !== '' && password !== '') {
-                        fetch(action, { method: 'POST', body: JSON.stringify({email, password}), headers: {
-                            "Content-type": "application/json; charset=UTF-8"
-                        }})
+                        const formData = new FormData()
+                        formData.append('email', email)
+                        formData.append('password', password)
+                        fetch(action, { method: 'POST', body: formData})
                         .then((response) => response.json())
                         .then((response) => {
-                            if (response.success) { 
+                            console.log(response)
+                            if (response.success) {
                                 window.localStorage.setItem('token', response.token)
                                 window.location.href = '/'
                             }
@@ -61,15 +62,27 @@ const Form = ({signIn}) => {
                 signUp: () => {
                     if (email !== '' && password !== '' &&
                     placename !== '' && address !== '' &&
-                    city !== '') {
-                        fetch(action, { method: 'POST', body: JSON.stringify({email, password, placename, address, city}), headers: {
-                            "Content-type": "application/json; charset=UTF-8"
-                        }})
+                    city !== '' && photos.length) {
+                        const filteredPhotos = photos.filter(photos => photos ? true : false)
+                        const formData = new FormData()
+
+                        formData.append('placename', placename)
+                        formData.append('email', email)
+                        formData.append('password', password)
+                        formData.append('address', address)
+                        formData.append('city', city)
+
+                        filteredPhotos.forEach(photo => {
+                            formData.append('photos', photo, photo.name)
+                        })
+
+                        console.log(formData)
+                        fetch(action, { method: 'POST', body: formData})
                         .then((response) => response.json())
                         .then((response) => {
                             if (response.success) {
                                 window.localStorage.setItem('token', response.token)
-                                window.location.href = '/Sign'
+                                window.location.href = '/SignIn'
                             }
                             else window.alert('Erro ao cadastrar, tente novamente!')
                         })
@@ -80,8 +93,17 @@ const Form = ({signIn}) => {
         }
     }
 
+    const handlePhoto = (event) => setPhotos([...photos, event.target.files[0]])
+
+    const addPhoto = () => setInputElements([...inputElements, React.createElement('input', { 
+        type: 'file',
+        onChange: handlePhoto,
+        name: 'photos',
+        placeholder: 'Selecione o arquivo da foto'
+    })])
+
     const [isUser, setIsUser] = useState(true)
-    const [action, setAction] = useState('http://192.168.15.44:8080/api/auth/user')
+    const [action, setAction] = useState('http://192.168.15.44:80/api/auth/user')
     const [username, setUsername] = useState('')
     const [placename, setPlacename] = useState('')
     const [email, setEmail] = useState('')
@@ -89,28 +111,28 @@ const Form = ({signIn}) => {
     const [address, setAddress] = useState('')
     const [city, setCity] = useState('')
     const [photos, setPhotos] = useState([])
+    const [inputElements, setInputElements] = useState([React.createElement('input', { 
+        type: 'file',
+        onChange: handlePhoto,
+        name: 'photos',
+        placeholder: 'Selecione o arquivo da foto'
+    })])
 
     useEffect(() => {
-        console.log(signIn)
         if (isUser) {
             if (signIn) {
-                setAction('http://192.168.15.44:8080/api/auth/user')
+                setAction('http://192.168.15.44:80/api/auth/user')
             } else {
-                setAction('http://192.168.15.44:8080/api/user')
+                setAction('http://192.168.15.44:80/api/user')
             }
-            setEmail('')
-            setPassword('')
         } else {
             if (signIn) {
-                setAction('http://192.168.15.44:8080/api/auth/place')
+                setAction('http://192.168.15.44:80/api/auth/place')
             } else {
-                setAction('http://192.168.15.44:8080/api/place')
+                setAction('http://192.168.15.44:80/api/place')
             }
-            
-            setEmail('')
-            setPassword('')
         }
-    }, [isUser, action, signIn])
+    }, [isUser, action, signIn, photos])
 
     if (!signIn) {
         return (
@@ -130,11 +152,11 @@ const Form = ({signIn}) => {
                 </div>
                 {isUser ? (
                     <div className="form-field">
-                        <input value={username} onChange={(e) => setUsername(e.target.value)} type="text" name="username" placeholder="Insira seu nome de usuário" />
+                        <input value={username} onChange={(e) => {setUsername(e.target.value); console.log(e.target.value)}} type="text" name="username" placeholder="Insira seu nome de usuário" />
                     </div>
                 ) : 
                     <div className="form-field">
-                        <input value={placename} onChange={(e) => setPlacename(e.target.value)} type="text" name="username" placeholder="Insira seu nome de usuário" />
+                        <input value={placename} onChange={(e) => setPlacename(e.target.value)} type="text" name="placename" placeholder="Insira seu nome de usuário" />
                     </div>
                 }
                 <div className="form-field">
@@ -153,8 +175,18 @@ const Form = ({signIn}) => {
                         <input value={city} onChange={(e) => setCity(e.target.value)} type="text" name="city" placeholder="Insira a cidade" />
                     </div>
                 )}
+                {isUser ? null : (
+                    <div className="form-field form-field-input">
+                        {inputElements.map((element) => element)}
+                    </div>
+                )}
+                {isUser ? null : (
+                    <div className="form-field">
+                        <button onClick={addPhoto} type="button" className="form-btn">Adicionar foto</button>
+                    </div>
+                )}
                 <div className="form-field">
-                    <button type="submit" className="form-btn">Cadastrar</button>
+                    <button type="submit" className="form-btn" id="confirm">Cadastrar</button>
                 </div>
             </form>
         )
@@ -176,10 +208,10 @@ const Form = ({signIn}) => {
                         }
                 </div>
                 <div className="form-field">
-                    <input value={email} onChange={(e) => setEmail(e.target.value)}  type="text" placeholder="Email" id="username"/>
+                    <input name="email" value={email} onChange={(e) => setEmail(e.target.value)}  type="text" placeholder="Email" id="username"/>
                 </div>
                 <div className="form-field">
-                    <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" placeholder="Senha" id="password" />
+                    <input name="password" value={password} onChange={(e) => setPassword(e.target.value)} type="password" placeholder="Senha" id="password" />
                 </div>
                 <div className="form-field">
                     <button className="form-btn">Entrar</button>

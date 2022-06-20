@@ -8,7 +8,7 @@
     height: 10vh;
 }
 
-.header .navigation .nav-item {
+.header .navigation .nav-item, .header .title .nav-title {
     padding: 5px;
     text-decoration: none;
     color: black;
