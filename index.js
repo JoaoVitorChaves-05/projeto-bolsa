@@ -1,10 +1,10 @@
 const express = require('express')
 const app = express()
-const PORT = process.env.PORT || 8080
+const PORT = process.env.PORT || 80
 const bodyParser = require('body-parser')
 const server = require('./server.js')
 const cors = require('cors')
-const url = 'http://localhost:3000/'
+const fileUpload = require('express-fileupload')
 
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: false }))
@@ -16,6 +16,8 @@ app.use((req, res, next) => {
 })
 */
 app.use(cors())
+app.use(express.static('public'))
+app.use(fileUpload())
 
 // USER
 app.post('/api/user', async (req, res) => {
@@ -74,26 +76,30 @@ app.delete('/api/user', async (req, res) => {
 
 // PLACE
 app.post('/api/place', async (req, res) => {
-    const { placename, email, password, photos, address, city} = req.body
-
-    if (placename && email && password && city) {
+    const { placename, email, password, address, city } = req.body
+    const photos = req.files ? req.files.photos : null
+    if (placename && email && password && city && photos) {
         await server.createPlace({ placename, email, password, photos, address, city })
 
         res.json({
-            status: 'success'
+            success: true,
         })
     }
 
     res.json({
-        status: 'error'
+        success: false
     })
 })
 
 app.get('/api/place', async (req, res) => {
-    const { id } = req.query
+    const { id, token } = req.query
 
     if (id) {
         const result = await server.getPlace({ id })
+
+        res.json(result)
+    } else if (token) {
+        const result = await server.getPlace({token})
 
         res.json(result)
     }
@@ -106,39 +112,33 @@ app.get('/api/places', async (req, res) => {
 })
 
 app.put('/api/place', async (req, res) => {
-    const { token } = req.body
+    const files = req.files ? req.files.photos : null
+    console.log(req.body)
+    console.log(files)
+    await server.updatePlace({...req.body, files})
 
-    const result = await server.updatePlace({token, dataToUpdate: req.body})
-
-    res.json(result)
+    res.json({ success: true })
 })
 
 app.delete('/api/place', async (req, res) => {
     const { token } = req.body
 
     if (token) {
-        await server.deletePlace({ token })
-        res.json({
-            status: 'success'
-        })
+        res.json(await server.deletePlace({ token }))
     }
 })
 
 // COMMENT
 app.post('/api/comment', async (req, res) => {
-    const { token, id_place, comment, grade, timestemp } = req.body
+    const { token, id_place, comment, grade, timestamp } = req.body
+    console.log(req.body)
 
-    if (token && id_place && comment && grade && timestemp) {
-        await server.createComment({ token, id_place, comment, grade, timestemp })
+    if (token && id_place && comment && grade && timestamp) {
+        console.log('Adding comment...')
+        const result = await server.createComment({ token, id_place, comment, grade, timestamp })
 
-        res.json({
-            status: 'success'
-        })
+        res.json(result)
     }
-
-    res.json({
-        status: 'error'
-    })
 })
 
 app.get('/api/comment', async (req, res) => {
@@ -149,7 +149,7 @@ app.get('/api/comment', async (req, res) => {
         res.json(result)
     }
 
-    res.json({ status: 'error'})
+    res.json([])
 })
 
 app.put('/api/comment', async (req, res) => {
@@ -159,12 +159,12 @@ app.put('/api/comment', async (req, res) => {
         await server.updateComment({ id_comment, token, comment, grade })
 
         res.json({
-            status: 'success'
+            success: true
         })
     }
 
     res.json({
-        status: 'error'
+        success: false
     })
 })
 
@@ -175,12 +175,12 @@ app.delete('/api/comment', async (req, res) => {
         await server.deleteComment({ id_comment, token })
 
         res.json({
-            status: 'success'
+            success: true
         })
     }
 
     res.json({
-        status: 'error'
+        success: false
     })
 })
 
@@ -188,15 +188,16 @@ app.delete('/api/comment', async (req, res) => {
 app.post('/api/auth/:type', async (req, res) => {
     const { type } = req.params
     const credentials = req.body
-    let result = {}
+    console.log(credentials)
 
-    if (type === 'user') {
-        result = await server.authenticateUser(credentials)
-    } else if (type === 'place') {
-        result = await server.authenticatePlace(credentials)
-    } else if (type === 'token') {
-        result = await server.authenticateToken(credentials)
+    const controller = {
+        user: async () => await server.authenticateUser(credentials),
+        place: async () => await server.authenticatePlace(credentials),
+        token: async () => await server.authenticateToken(credentials)
     }
+
+    const result = await controller[type]()
+    console.log(result)
 
     res.json(result)
 })

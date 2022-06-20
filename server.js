@@ -1,4 +1,5 @@
 const bcrypt = require('bcryptjs')
+const fs = require('fs')
 
 class Server {
     constructor() {
@@ -16,7 +17,7 @@ class Server {
                     `)
 
                     if (rows[0]) {
-                        result.status = true
+                        result.success = true
                         result.id_instance = rows[0].id_user
                     }
                 }
@@ -28,11 +29,10 @@ class Server {
                     `)
 
                     if (rows[0]) {
-                        result.status = true
+                        result.success = true
                         result.id_instance = rows[0].id_place
                     }
                 }
-                
                 return result
             }
         }
@@ -56,6 +56,26 @@ class Server {
         })()
 
         return token
+    }
+
+    createFilename(extension) {
+        const higher_chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
+        const lower_chars = 'abcdefghijklmnopqrstuvwxyz'.split('')
+        const numbers = '1234567890'.split('')
+
+        const token = (() => {
+            let token_string = ''
+            for (let i = 0; i < 16; i++) {
+                let typeList = Math.floor(Math.random() * 3)
+                if (typeList == 0) token_string += higher_chars[Math.floor(Math.random() * 26)]
+                if (typeList == 1) token_string += lower_chars[Math.floor(Math.random() * 26)]
+                if (typeList == 2) token_string += numbers[Math.floor(Math.random() * 10)]
+            }
+
+            return token_string
+        })()
+
+        return token + '.' + extension
     }
 
     async start() {
@@ -135,9 +155,6 @@ class Server {
         } catch(e) {
             console.log(e)
         }
-        
-
-        
         return true
     }
 
@@ -158,7 +175,7 @@ class Server {
         
     } 
 
-    // IMPLEMENTAR A ADIÇÃO DE FOTOS 
+    // IMPLEMENTAR A ADIÇÃO DE FOTOS - IMPLEMENTADO
     async createPlace({placename, email, password, photos, address, city}) {
         const passwordHash = await bcrypt.hash(password, 8)
 
@@ -169,27 +186,50 @@ class Server {
             RETURNING *
             `)
 
-            photos.forEach(async photo => {
-                await this.database.query(`
-                INSERT INTO Photos (id_place, photo_url)
-                VALUES (${rows[0].id}, '${photo}')
-                `)
-            })
-
+            try {
+                photos.forEach(async photo => {
+                    const filename = this.createFilename(photo.name.split('.')[photo.name.split('.').length - 1])
+                    const url = './public/uploads/' + filename
+                    photo.mv(url, async (err) => {
+                        if (err) return err
+                        await this.database.query(`
+                        INSERT INTO Photos (id_place, photo_url)
+                        VALUES (${rows[0].id}, '${'/uploads/' + filename}')
+                        `)
+                    })
+                })
+            } catch {
+                console.log(photos)
+                const filename = this.createFilename(photos.name.split('.')[photos.name.split('.').length - 1])
+                const url = './public/uploads/' + filename
+                photos.mv(url, async (err) => {
+                    if (err) return err
+                    await this.database.query(`
+                    INSERT INTO Photos (id_place, photo_url)
+                    VALUES (${rows[0].id}, '${'/uploads/' + filename}')
+                    `)
+                })
+            }
         } catch (error) {
             console.log(error)
         }
     }
 
     async createComment({token, id_place, comment, grade, timestamp}) {
-        const result = this.validateInstance(token, 'user')
+        const result = await this.validateInstance(token, 'user')
 
-        if (result.status) {
+        if (result.success) {
             await this.database.query(`
             INSERT INTO Comments (id_user, id_place, comment, grade, timestamp)
-            VALUES (${result.id_instance}, ${id_place}, ${comment}, ${grade}, ${timestamp})
+            VALUES (${result.id_instance}, ${id_place}, '${comment}', ${grade}, '${timestamp}')
             `)
+
+            return {
+                success: true
+            }
         }
+
+        return { success: false }
     }
 
     async getUser({id, token}) {
@@ -213,8 +253,6 @@ class Server {
             WHERE token = '${token}'
             `)
 
-            console.log(loggedUser.rows[0].id_user)
-
             const user = await this.database.query(`
             SELECT * FROM Users
             WHERE id = ${loggedUser.rows[0].id_user}
@@ -224,7 +262,6 @@ class Server {
 
             return user.rows[0]
         }
-
     }
 
     async getUsers() {
@@ -242,51 +279,96 @@ class Server {
     }
 
     async getPlaces({city}) {
-        let { rows } = await this.database.query(`
-        SELECT * FROM Places
-        WHERE city = '${city}'
-        `)
+        const places = []
 
-        rows.forEach(async (row) => {
-            row.password_hash = null
-            const photos = await this.database.query(`
-            SELECT photo_url FROM Photos
-            WHERE id_place = ${row.id}
-            `)
-            console.log(photos)
+        await this.database.query(`
+        SELECT * FROM Places WHERE city = '${city}'
+        `).then(async results => {
+            for (let place of results.rows) {
+                await this.database.query(`
+                SELECT * FROM Photos WHERE id_place = ${place.id}
+                `).then(el => places.push({place_details: place, photos: el.rows}))
+            }
         })
-
-        return rows
+        
+        console.log(places)
+        return places
     }
 
-    async getPlace({id}) {
-        const { rows } = await this.database.query(`
-        SELECT * FROM Places
-        WHERE id = ${id}
-        `)
+    async getPlace({id, token}) {
+        if (id) {
+            const currentPlace = await this.database.query(`
+            SELECT * FROM Places
+            WHERE id = ${id}
+            `)
 
-        rows.forEach((row) => {
-            row.password_hash = null
-        })
+            const photos = await this.database.query(`
+            SELECT * FROM Photos
+            WHERE id_place = ${id}
+            `)
 
-        console.log(rows)
+            currentPlace.rows[0].password_hash = null
 
-        return rows
+            console.log({
+                place_details: currentPlace.rows[0],
+                photos: photos.rows
+            })
+
+            return {
+                place_details: currentPlace.rows[0],
+                photos: photos.rows
+            }
+        } else if (token) {
+            const currentPlace = await this.database.query(`
+            SELECT * FROM LoggedPlaces
+            WHERE token ='${token}'
+            `)
+
+            const id = currentPlace.rows[0].id_place
+
+            const data = await this.database.query(`
+            SELECT * FROM Places
+            WHERE id = ${id}
+            `)
+
+            const photos = await this.database.query(`
+            SELECT * FROM Photos
+            WHERE id_place = ${id}
+            `)
+
+            data.rows[0].password_hash = null
+
+            return {
+                place_details: data.rows[0],
+                photos: photos.rows
+            }
+        } else {
+            return {
+                place_details: null,
+                photos: null
+            }
+        }
     }
 
     async getComments({id_place}) {
-        let { rows } = await this.database.query(`
-        SELECT * FROM Comments
-        WHERE id = ${id_place}
-        `)
 
-        return rows
+        try {
+            let { rows } = await this.database.query(`
+            SELECT comment, grade, timestamp, id_place, U.username FROM Comments AS C
+            LEFT JOIN Users AS U ON C.id_user = U.id
+            WHERE C.id_place = ${id_place};
+            `)
+
+            return rows
+        } catch {
+            return []
+        }
     }
 
     async updateUser({token, dataToUpdate}) {
-        const {status, id_instance} = await this.validateInstance(token, 'user')
+        const {success, id_instance} = await this.validateInstance(token, 'user')
 
-        if (status) {
+        if (success) {
             const keys = Object.keys(dataToUpdate)
 
             keys.forEach( async key => {
@@ -298,7 +380,7 @@ class Server {
                     WHERE id = ${id_instance}
                     `)
                 else {
-                    if (dataToUpdate.password !== '') return { status: false}
+                    if (dataToUpdate.password !== '') return { success: false}
                     const passwordHash = await bcrypt.hash(dataToUpdate[key], 8)
                     await this.database.query(`
                     UPDATE Users
@@ -310,47 +392,78 @@ class Server {
             })
 
             return {
-                status: true,
+                success: true,
             }
         }
 
         return {
-            status: false
+            success: false,
         }
     }
 
     // IMPLEMENTAR ALTERAÇÃO DE FOTOS
-    async updatePlace({token, dataToUpdate}) {
-        const {status, id_instance} = this.validateInstance(token, 'place')
+    async updatePlace({token, dataToUpdate, files}) {
+        const {success, id_instance} = await this.validateInstance(token, 'place')
 
-        delete dataToUpdate.token
-        
-        if (status) {
-            const keys = Object.keys(dataToUpdate)
+        try {
+            if (success) {
+                const keys = Object.keys(dataToUpdate.dataToUpdate)
 
-            keys.forEach( async key => {
+                keys.forEach( async key => {
+    
+                    if (key === 'password' && dataToUpdate.dataToUpdate[key].length) {
+                        const passwordHash = await bcrypt.hash(dataToUpdate.dataToUpdate[key], 8)
+                        console.log(dataToUpdate.dataToUpdate[key])
+                        console.log(passwordHash)
+                        await this.database.query(`
+                        UPDATE Places
+                        SET password_hash = '${passwordHash}'
+                        WHERE id = ${id_instance}
+                        `)
+                    }
+                    else if (key !== 'password') {
+                        console.log(dataToUpdate.dataToUpdate[key])
+                        await this.database.query(`
+                        UPDATE Places
+                        SET ${key} = '${dataToUpdate.dataToUpdate[key]}'
+                        WHERE id = ${id_instance}
+                        `)
+                    }
+                })
 
-                if (key != 'password')
-                    await this.database.query(`
-                    UPDATE Users
-                    SET ${key} = "${dataToUpdate[key]}"
-                    `)
-                else {
-                    const passwordHash = await bcrypt.hash(dataToUpdate[key], 8)
-                    await this.database.query(`
-                    UPDATE Users
-                    SET password_hash = "${passwordHash}"
-                    `)
+                try {
+                    files.forEach(async photo => {
+                        const filename = this.createFilename(photo.name.split('.')[photo.name.split('.').length - 1])
+                        const url = './public/uploads/' + filename
+                        photo.mv(url, async (err) => {
+                            if (err) return err
+                            await this.database.query(`
+                            INSERT INTO Photos (id_place, photo_url)
+                            VALUES (${id_instance}, '${'/uploads/' + filename}')
+                            `)
+                        })
+                    })
+                } catch {
+                    const filename = this.createFilename(files.name.split('.')[files.name.split('.').length - 1])
+                    const url = './public/uploads/' + filename
+                    files.mv(url, async (err) => {
+                        if (err) return err
+                        await this.database.query(`
+                        INSERT INTO Photos (id_place, photo_url)
+                        VALUES (${id_instance}, '${'/uploads/' + filename}')
+                        `)
+                    })
                 }
-
-            })
+            }
+        } catch (err) {
+            console.log(err)
         }
     }
 
     async updateComment({id_comment, token, comment, grade}) {
-        const {status, id_instance} = this.validateInstance(token, 'user')
+        const {success, id_instance} = await this.validateInstance(token, 'user')
 
-        if (status) {
+        if (success) {
             await this.database.query(`
             UPDATE Comments
             SET comment = "${comment}",
@@ -359,55 +472,54 @@ class Server {
             WHERE id = ${id_comment} AND id_user = ${id_instance}
             `)
 
-            return {status: true}
+            return { success: true }
         }
 
-        return {status: false}
+        return { success: false }
     }
 
     async deleteUser({token}) {
-        const {status, id_instance} = await this.validateInstance(token, 'user')
+        const {success, id_instance} = await this.validateInstance(token, 'user')
 
-        if (status) {
+        if (success) {
             await this.database.query(`
             DELETE FROM Users
             WHERE id = ${id_instance}
             `)
 
-            return {status: true}
+            return { success: true }
         }
 
-        return {status: false}
+        return { success: false }
     }
 
     async deletePlace({token}) {
-        const {status, id_instance} = this.validateInstance(token, 'user')
+        const {success, id_instance} = await this.validateInstance(token, 'place')
 
-        if (status) {
+        if (success) {
             await this.database.query(`
             DELETE FROM Places
             WHERE id = ${id_instance}
             `)
-
-            return {status: true}
+            return { success: true }
         }
 
-        return { status: false }
+        return { success: false }
     }
 
     async deleteComment({id_comment, token}) {
-        const {status, id_instance} = this.validateInstance(token, 'user')
+        const {success, id_instance} = await this.validateInstance(token, 'user')
 
-        if (status) {
+        if (success) {
             await this.database.query(`
             DELETE FROM Comments
             WHERE id_user = ${id_instance} AND id = ${id_comment}
             `)
 
-            return { status: true }
+            return { success: true }
         }
 
-        return { status: false }
+        return { success: false }
     }
 
     async authenticateUser({email, password}) {
@@ -416,58 +528,71 @@ class Server {
             obj = await this.database.query(`
             SELECT * FROM Users WHERE email = '${email}'
             `)
+
+            let row = obj.rows[0]
+            console.log(row)
+
+            if (row.email) {
+                let match = await bcrypt.compare(password, row.password_hash)
+
+                if (match) {
+                    const token = this.createToken()
+
+                    await this.database.query(`
+                    INSERT INTO LoggedUsers (id_user, token)
+                    VALUES (${row.id}, '${token}')
+                    `)
+                    console.log('User was found')
+                    return {token, success: true}
+                } else {
+                    return {success: false}
+                }
+            }
         } catch (e) {
             console.log('The error is here')
+            return {success: false}
         }
-        let row = obj.rows[0]
-
-        if (row.email) {
-            let match = await bcrypt.compare(password, row.password_hash)
-
-            if (match) {
-                const token = this.createToken()
-
-                await this.database.query(`
-                INSERT INTO LoggedUsers (id_user, token)
-                VALUES (${row.id}, '${token}')
-                `)
-                console.log('User was found')
-                return {token, success: true}
-            }
-        }
-
-        return {success: false}
-
     }
 
     async authenticatePlace({email, password}) {
         let {rows} = await this.database.query(`
-        SELECT * FROM Places
+        SELECT * FROM Places WHERE email = '${email}'
         `)
 
-        for (let i = 0; i < rows.lenght; i++) {
-            if (rows[i].email === email && bcrypt.compare(password, rows[i].password_hash)) {
-                const token = this.createToken()
-
-                await this.database.query(`
-                INSERT INTO LoggedPlace (id_place, token)
-                VALUES (${rows[i].id_user}, "${token}")
-                `)
-
-                return token
+        try {
+            for (let i = 0; i < rows.length; i++) {
+                if (rows[i].email === email) {
+                    let match = await bcrypt.compare(password, rows[i].password_hash)
+    
+                    if (match) {
+                        const token = this.createToken()
+    
+                        await this.database.query(`
+                        INSERT INTO LoggedPlaces (id_place, token)
+                        VALUES (${rows[i].id}, '${token}')
+                        `)
+    
+                        return {token, success: true}
+                    } else {
+                        console.log('Any user has founded!')
+                        return {success: false}
+                    }
+                }
             }
+        } catch (e) {
+            console.log(e)
+            return {success: false}
         }
     }
 
     async authenticateToken({token}) {
         const user = await this.database.query(`
-        SELECT id_user FROM LoggedUsers
+        SELECT * FROM LoggedUsers
         WHERE token='${token}'
         `)
-        console.log(user)
 
         const place = await this.database.query(`
-        SELECT id_place FROM LoggedPlaces
+        SELECT * FROM LoggedPlaces
         WHERE token='${token}'
         `)
 
@@ -487,8 +612,8 @@ class Server {
         else if (place.rows[0]) {
 
             let { rows } = await this.database.query(`
-            SELECT * FROM Users
-            WHERE id = ${user.rows[0].id_user}
+            SELECT * FROM Places
+            WHERE id = ${place.rows[0].id_place}
             `)
 
             if (rows[0]) {
