@@ -23,7 +23,7 @@ const Form = ({signIn}) => {
                                 window.localStorage.setItem('token', response.token)
                                 window.location.href = '/'
                             }
-                            else window.alert('Erro ao entrar, tente novamente!')
+                            else window.alert(response.message)
                         })
                     }
                 },
@@ -103,7 +103,7 @@ const Form = ({signIn}) => {
     })])
 
     const [isUser, setIsUser] = useState(true)
-    const [action, setAction] = useState('http://192.168.15.44:80/api/auth/user')
+    const [action, setAction] = useState('http://localhost:80/api/auth/user')
     const [username, setUsername] = useState('')
     const [placename, setPlacename] = useState('')
     const [email, setEmail] = useState('')
@@ -121,15 +121,15 @@ const Form = ({signIn}) => {
     useEffect(() => {
         if (isUser) {
             if (signIn) {
-                setAction('http://192.168.15.44:80/api/auth/user')
+                setAction('http://localhost:80/api/auth/user')
             } else {
-                setAction('http://192.168.15.44:80/api/user')
+                setAction('http://localhost:80/api/user')
             }
         } else {
             if (signIn) {
-                setAction('http://192.168.15.44:80/api/auth/place')
+                setAction('http://localhost:80/api/auth/place')
             } else {
-                setAction('http://192.168.15.44:80/api/place')
+                setAction('http://localhost:80/api/place')
             }
         }
     }, [isUser, action, signIn, photos])

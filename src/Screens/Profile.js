@@ -6,9 +6,29 @@ import Footer from '../Components/Footer.js'
 
 import React from 'react'
 
+import { AiFillDelete } from 'react-icons/ai'
+
 const Profile = () => {
     const handlePhoto = (event) => setPhotos([...photos, event.target.files[0]])
     
+    const handleDelete = async (id) => {
+        if (window.confirm('Are you sure you want to delete this photo?')) {
+            const formData = new FormData()
+            formData.append('id_photo', id)
+            formData.append('token', token)
+            
+            const result = await fetch('http://localhost:80/api/photo', {method: 'DELETE', body: formData})
+            .then(response => response.json())
+            .then(response => response)
+
+            if (!result.success) {
+                window.alert('Something went wrong with deleting')
+            } else {
+                window.location.reload()
+            }
+        }
+    }
+
     const addPhoto = () => setInputElements([...inputElements, React.createElement('input', { 
         type: 'file',
         onChange: handlePhoto,
@@ -23,6 +43,8 @@ const Profile = () => {
     const [placename, setPlacename] = useState('')
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
+    const [address, setAddress] = useState('')
+    const [city, setCity] = useState('')
 
     const [submitType, setSubmitType] = useState('')
 
@@ -40,7 +62,7 @@ const Profile = () => {
 
     useEffect(() => {
         if (!isLogged) {
-            fetch('http://192.168.15.44:80/api/auth/token', { method: 'POST', body: JSON.stringify({token: token}), headers: {
+            fetch('http://localhost:80/api/auth/token', { method: 'POST', body: JSON.stringify({token: token}), headers: {
                 "Content-type": "application/json; charset=UTF-8"
             }})
             .then(response => response.json())
@@ -52,7 +74,7 @@ const Profile = () => {
             }).catch(error => console.log(error))
         } else {
             console.log('você está logado')
-            fetch(`http://192.168.15.44:80/api/${isUser ? 'user' : 'place'}?token=` + token, { method: 'GET'})
+            fetch(`http://localhost:80/api/${isUser ? 'user' : 'place'}?token=` + token, { method: 'GET'})
             .then(response => response.json())
             .then(response => {
                 console.log(response)
@@ -61,10 +83,12 @@ const Profile = () => {
                     setUsername(username)
                     setEmail(email)
                 } else {
-                    const {placename, email} = response.place_details
+                    const {placename, email, address, city} = response.place_details
                     setPlacename(placename)
                     setEmail(email)
                     setPhotosURL(response.photos)
+                    setAddress(address)
+                    setCity(city)
                 }
             })
         }
@@ -74,28 +98,29 @@ const Profile = () => {
         event.preventDefault()
         const controller = {
             updateData: () => {
-                const data = isUser ? {
-                    token,
-                    dataToUpdate: {
-                        username,
-                        email,
-                        password
-                    }
-                } : {
-                    token,
-                    dataToUpdate: {
-                        placename,
-                        email,
-                        password,
-                    }
+                const filteredPhotos = photos.filter(el => el ? true : false)
+                const formData = new FormData()
+                
+                if (isUser) {
+                    formData.append('token', token)
+                    formData.append('username', username)
+                    formData.append('password', password)
+                    formData.append('email', email)
+                } else {
+                    formData.append('token', token)
+                    formData.append('placename', placename)
+                    formData.append('password', password)
+                    formData.append('email', email)
+                    formData.append('address', address)
+                    formData.append('city', city)
+
+                    filteredPhotos.forEach(photo => formData.append('photos', photo))
                 }
 
-                const filteredPhotos = inputElements.filter(el => el.value ? true : false)
-
-                fetch('http://192.168.15.44:80/api/' + (isUser ? 'user' : 'place'), { method: 'PUT', body: JSON.stringify({...data, files: isUser ? null : filteredPhotos}), headers: {"Content-type": "application/json; charset=UTF-8"}}).then(response => response.json())
+                fetch('http://localhost:80/api/update/' + (isUser ? 'user' : 'place'), { method: 'POST', body: formData}).then(response => response.json())
                 .then(response => {
                     console.log(response)
-                    response.success ? window.confirm('Dados atualizados com sucesso!') : window.alert('Erro ao atualizar dados!')
+                    response.success ? window.location.reload() : window.alert('Erro ao atualizar dados!')
                 })
                 .catch(error => console.log(error))
             },
@@ -104,7 +129,7 @@ const Profile = () => {
                 window.location.href = '/'
             },
             excludeData: () => {
-                fetch('http://192.168.15.44:80/api/' + (isUser ? 'user' : 'place'), { method: 'DELETE', body: JSON.stringify({token}), headers: { 
+                fetch('http://localhost:80/api/' + (isUser ? 'user' : 'place'), { method: 'DELETE', body: JSON.stringify({token}), headers: { 
                     "Content-type": "application/json; charset=UTF-8"
                 }}).then(response => response.json())
                 .then(response => {
@@ -122,7 +147,7 @@ const Profile = () => {
             <Header isProfile={true} />
             <main>
                 {isUser ? (
-                    <form className="form-profile" onSubmit={handleSubmit}>
+                    <form className="form-profile" onSubmit={handleSubmit} method={'POST'}>
                         <div className="form-field">
                             <h2>Meus dados</h2>
                         </div>
@@ -152,6 +177,12 @@ const Profile = () => {
                         <div className="form-field">
                             <input type="email" className="form-input" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)}/>
                         </div>
+                        <div className='form-field'>
+                            <input type="text" className="form-input" placeholder='Endereço' value={address} onChange={(e) => setAddress(e.target.value)}/>
+                        </div>
+                        <div className='form-field'>
+                            <input type="text" className="form-input" placeholder='Cidade' value={city} onChange={(e) => setCity(e.target.value)}/>
+                        </div>
                         <div className="form-field">
                             <input type="password" className="form-input" placeholder="Insira uma nova senha" value={password} onChange={(e) => setPassword(e.target.value)}/>
                         </div>
@@ -159,8 +190,9 @@ const Profile = () => {
                             <h2>Minhas fotos</h2>
                         </div>
                         {photosURL.map((photo) => (
-                            <div className="form-field">
+                            <div key={photo.id} className="form-field image-item">
                                 <img src={'http://localhost:80' + photo.photo_url} />
+                                <AiFillDelete onClick={() => handleDelete(photo.id)} size="48px" className='image-icon'/>
                             </div>
                         ))}
                         <div className="form-field form-field-input">

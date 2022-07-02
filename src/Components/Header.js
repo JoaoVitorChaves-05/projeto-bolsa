@@ -8,7 +8,7 @@ const Header = ({isProfile}) => {
 
     useEffect(() => {
         if (!isLogged) {
-            fetch('http://192.168.15.44:80/api/auth/token', { method: 'POST', body: JSON.stringify({token: token}), headers: {
+            fetch('http://localhost:80/api/auth/token', { method: 'POST', body: JSON.stringify({token: token}), headers: {
                 "Content-type": "application/json; charset=UTF-8"
             }})
             .then(response => response.json())

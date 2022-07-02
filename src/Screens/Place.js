@@ -24,7 +24,7 @@ const Place = () => {
 
     const fetchData = async (id) => {
         try {
-            const data = await fetch('http://192.168.15.44:80/api/place?id=' + id)
+            const data = await fetch('http://localhost:80/api/place?id=' + id)
             .then((response) => response.json())
             .then((results) => setData(results))
             return data
@@ -37,7 +37,7 @@ const Place = () => {
 
     const fetchComments = async (id) => {
         try {
-            const data = await fetch('http://192.168.15.44:80/api/comment?id_place=' + id)
+            const data = await fetch('http://localhost:80/api/comment?id_place=' + id)
             .then((response) => response.json())
             .then((results) => {
                 setComments(results)
@@ -57,35 +57,39 @@ const Place = () => {
         const token = window.localStorage.getItem('token')
         const timestamp = new Date()
 
-        if (grade <= 0) {
+        if (grade <= 0 || grade >= 6) {
             return window.alert('Insira uma nota válida!')
         }
 
         if (token)
-            await fetch('http://192.168.15.44:80/api/comment', { method: 'POST', body: JSON.stringify({token, comment, grade: Math.floor(grade), timestamp: timestamp.toJSON(), id_place: searchParams}), headers: {
+            await fetch('http://localhost:80/api/comment', { method: 'POST', body: JSON.stringify({token, comment, grade: Math.floor(grade), timestamp: timestamp.toJSON(), id_place: searchParams}), headers: {
                 "Content-type": "application/json; charset=UTF-8"
             }})
             .then(response => response.json())
-            .then(result => result.success ? fetchComments(searchParams) : window.alert('Erro ao comentar, tente novamente mais tarde'))
+            .then(result => result.success ? fetchComments(searchParams) : (!result.isUser ? window.alert('Você é local, não pode avaliar outros!') : window.alert('Erro ao comentar, tente novamente mais tarde!')))
         else window.alert('Você precisa estar logado para comentar!')
     }
 
     useEffect(() => {
         if (!searchParams) window.alert('Please provide a search')
         else {
-            if (data) {
-                setTimeout(() => {
+            if (!data) {
+                fetchData(searchParams)
+            } else setTimeout(() => {
+                try {
                     if (index + 1 >= data.photos.length) setIndex(0)
                     else setIndex(prevCount => prevCount + 1)
-                }, 5000)
-            }
-            else fetchData(searchParams)
+                } catch (e) {
+                    console.log(e)
+                }
+            }, 5000)
 
             if (!comments) fetchComments(searchParams)
         }
-    }, [searchParams, data, index, comments])
+    }, [searchParams, data, comments, index])
 
     if (data) {
+
         return (
             <div className="screen">
                 <Header />
@@ -117,10 +121,17 @@ const Place = () => {
                                 <button onClick={handleSubmitComment}>Comentar</button>
                             </div>
                         ) : null}
-                        {comments ? comments.map(comment => (
-                            <div className="item-comment">
+                        {comments ? comments.map((comment, index) => (
+                            <div key={index} className="item-comment">
                                 <h3>{comment.username}</h3>
-                                <p>Publicado em <b>{comment.timestamp}</b></p>
+                                <p>Publicado em <b>{(() => {
+                                    // 2022-06-27T14:12:05.827Z
+                                    let date = comment.timestamp.split('T')[0]
+                                    
+                                    let newDate = date.split('-')[2] + '/' + date.split('-')[1] + '/' + date.split('-')[0]
+                                    
+                                    return newDate
+                                    })()}</b></p>
                                 <p>Nota: {comment.grade}/5</p>
                                 <p>{comment.comment}</p>
                             </div>

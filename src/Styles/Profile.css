@@ -26,6 +26,28 @@
     border: 1px solid black;
 }
 
+.form-profile .image-item {
+    display: flex;
+    flex-direction: column;
+
+    background-color: rgb(230, 230, 230);
+
+    padding-left: 10px;
+    padding-right: 10px;
+
+    margin-bottom: 10px;
+
+    border-radius: 10px;
+}
+
+.form-profile .image-item img {
+    width: 100%;
+}
+
+.form-profile .image-item .image-icon {
+    cursor: pointer;
+}
+
 .form-profile .form-field input[type="file"] {
     background-color: rgba(255,255,255,0.07);
     border-radius: 3px;
