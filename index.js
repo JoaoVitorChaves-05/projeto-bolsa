@@ -5,16 +5,10 @@ const bodyParser = require('body-parser')
 const server = require('./server.js')
 const cors = require('cors')
 const fileUpload = require('express-fileupload')
+const { application } = require('express')
 
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: false }))
-/*
-app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*')
-    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE')
-    next()
-})
-*/
 app.use(cors())
 app.use(express.static('public'))
 app.use(fileUpload())
@@ -46,7 +40,7 @@ app.get('/api/users', async (req, res) => {
     res.json(result)
 })
 
-app.put('/api/user', async (req, res) => {
+app.post('/api/update/user', async (req, res) => {
     const { token } = req.body
 
     try {
@@ -111,11 +105,12 @@ app.get('/api/places', async (req, res) => {
     res.json(result)
 })
 
-app.put('/api/place', async (req, res) => {
+app.post('/api/update/place', async (req, res) => {
+    const {token, placename, password, email, address, city} = req.body
     const files = req.files ? req.files.photos : null
     console.log(req.body)
-    console.log(files)
-    await server.updatePlace({...req.body, files})
+    console.log(req.files)
+    await server.updatePlace({token, dataToUpdate: {placename, password, email, address, city}, files})
 
     res.json({ success: true })
 })
@@ -137,6 +132,7 @@ app.post('/api/comment', async (req, res) => {
         console.log('Adding comment...')
         const result = await server.createComment({ token, id_place, comment, grade, timestamp })
 
+        console.log(result)
         res.json(result)
     }
 })
@@ -148,8 +144,6 @@ app.get('/api/comment', async (req, res) => {
         const result = await server.getComments({id_place})
         res.json(result)
     }
-
-    res.json([])
 })
 
 app.put('/api/comment', async (req, res) => {
@@ -184,6 +178,19 @@ app.delete('/api/comment', async (req, res) => {
     })
 })
 
+app.delete('/api/photo', async (req, res) => {
+    const { token, id_photo } = req.body
+
+    if (token && id_photo) {
+        let result = await server.deletePhoto({ id_photo, token })
+
+        res.json(result)
+        return
+    }
+
+    res.json({ success: false })
+})
+
 // AUTHENTICATION
 app.post('/api/auth/:type', async (req, res) => {
     const { type } = req.params
@@ -197,11 +204,9 @@ app.post('/api/auth/:type', async (req, res) => {
     }
 
     const result = await controller[type]()
-    console.log(result)
 
     res.json(result)
 })
-
 
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/teste.html')

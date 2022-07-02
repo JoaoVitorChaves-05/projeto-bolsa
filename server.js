@@ -31,6 +31,7 @@ class Server {
                     if (rows[0]) {
                         result.success = true
                         result.id_instance = rows[0].id_place
+                        result.isUser = false
                     }
                 }
                 return result
@@ -90,7 +91,7 @@ class Server {
 
         const client = new Client({
             host: 'localhost',
-            database: 'projeto-bolsa',
+            database: 'projeto_bolsa',
             user: 'postgres',
             password: 'joaodev',
             port: 5432
@@ -131,6 +132,7 @@ class Server {
                 id_user INTEGER NOT NULL,
                 id_place INTEGER NOT NULL,
                 comment VARCHAR,
+                grade INTEGER NOT NULL,
                 timestamp TIMESTAMP
             )`)
     
@@ -407,13 +409,13 @@ class Server {
 
         try {
             if (success) {
-                const keys = Object.keys(dataToUpdate.dataToUpdate)
+                const keys = Object.keys(dataToUpdate)
 
                 keys.forEach( async key => {
     
-                    if (key === 'password' && dataToUpdate.dataToUpdate[key].length) {
-                        const passwordHash = await bcrypt.hash(dataToUpdate.dataToUpdate[key], 8)
-                        console.log(dataToUpdate.dataToUpdate[key])
+                    if (key === 'password' && dataToUpdate[key].length) {
+                        const passwordHash = await bcrypt.hash(dataToUpdate[key], 8)
+                        console.log(dataToUpdate[key])
                         console.log(passwordHash)
                         await this.database.query(`
                         UPDATE Places
@@ -422,10 +424,10 @@ class Server {
                         `)
                     }
                     else if (key !== 'password') {
-                        console.log(dataToUpdate.dataToUpdate[key])
+                        console.log(dataToUpdate[key])
                         await this.database.query(`
                         UPDATE Places
-                        SET ${key} = '${dataToUpdate.dataToUpdate[key]}'
+                        SET ${key} = '${dataToUpdate[key]}'
                         WHERE id = ${id_instance}
                         `)
                     }
@@ -522,6 +524,29 @@ class Server {
         return { success: false }
     }
 
+    async deletePhoto({id_photo, token}) {
+        const {success, id_instance} = await this.validateInstance(token, 'place')
+
+        if (success) {
+            let {rows} = await this.database.query(`
+                SELECT * FROM Photos
+                WHERE id = ${id_photo}
+            `)
+
+            console.log('./public' + rows[0].photo_url)
+            fs.unlinkSync('./public' + rows[0].photo_url)
+
+            await this.database.query(`
+                DELETE FROM Photos
+                WHERE id = ${id_photo}
+            `)
+
+            return { success: true }
+        }
+
+        return { success: false }
+    }
+
     async authenticateUser({email, password}) {
         let obj
         try {
@@ -545,9 +570,9 @@ class Server {
                     console.log('User was found')
                     return {token, success: true}
                 } else {
-                    return {success: false}
+                    return {success: false, message: 'Email ou senha incorretos'} 
                 }
-            }
+            } else return {success: false, message: 'Email ou senha incorretos'}
         } catch (e) {
             console.log('The error is here')
             return {success: false}
@@ -575,13 +600,15 @@ class Server {
                         return {token, success: true}
                     } else {
                         console.log('Any user has founded!')
-                        return {success: false}
+                        return {success: false, message: 'Email ou senha incorretos'}
                     }
-                }
+                } else return {success: false, message: 'Email ou senha incorretos'}
             }
+
+            return {success: false, message: 'Email ou senha incorretos'}
         } catch (e) {
             console.log(e)
-            return {success: false}
+            return {success: false, message: 'Ops... Algo deu errado! Tente novamente mais tarde'}
         }
     }
 
