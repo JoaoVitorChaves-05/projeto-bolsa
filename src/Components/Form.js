@@ -1,10 +1,32 @@
 import '../Styles/Form.css'
+import '../Styles/Map.css'
 
 import {useState, useEffect} from 'react'
 
 import React from 'react'
+import LocationMarker from './LocationMarker'
+
+import { MapContainer, TileLayer, useMap } from 'react-leaflet'
+import 'leaflet/dist/leaflet.css'
+import L from 'leaflet';
+
+delete L.Icon.Default.prototype._getIconUrl;
+
+L.Icon.Default.mergeOptions({
+    iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
+    iconUrl: require('leaflet/dist/images/marker-icon.png'),
+    shadowUrl: require('leaflet/dist/images/marker-shadow.png')
+});
+
+function SetCenter({center}) {
+    const map = useMap()
+    map.setView(center)
+    return null
+}
+
 
 const Form = ({signIn}) => {
+
     const handleType = (e) => e.target.className === 'active' ? null : setIsUser(!isUser)
 
     const handleSubmit = (event) => {
@@ -62,21 +84,24 @@ const Form = ({signIn}) => {
                 signUp: () => {
                     if (email !== '' && password !== '' &&
                     placename !== '' && address !== '' &&
-                    city !== '' && photos.length) {
+                    city !== null && photos.length && position !== null) {
                         const filteredPhotos = photos.filter(photos => photos ? true : false)
                         const formData = new FormData()
+                        const currentCity = cityData.filter(city => city.name === city.name ? true : false)
+
 
                         formData.append('placename', placename)
                         formData.append('email', email)
                         formData.append('password', password)
                         formData.append('address', address)
-                        formData.append('city', city)
+                        formData.append('id_city', currentCity[0].id)
+                        formData.append('latitude', position.lat)
+                        formData.append('longitude', position.lng)
 
                         filteredPhotos.forEach(photo => {
                             formData.append('photos', photo, photo.name)
                         })
 
-                        console.log(formData)
                         fetch(action, { method: 'POST', body: formData})
                         .then((response) => response.json())
                         .then((response) => {
@@ -117,6 +142,10 @@ const Form = ({signIn}) => {
         name: 'photos',
         placeholder: 'Selecione o arquivo da foto'
     })])
+    const [mapIsVisible, setMapIsVisible] = useState(false)
+    const [center, setCenter] = useState(null)
+    const [position, setPosition] = useState(null)
+    const [cityData, setCityData] = useState(null)
 
     useEffect(() => {
         if (isUser) {
@@ -132,7 +161,23 @@ const Form = ({signIn}) => {
                 setAction('http://localhost:80/api/place')
             }
         }
-    }, [isUser, action, signIn, photos])
+
+        if (!cityData) {
+            fetch('http://localhost:80/api/cities')
+            .then(response => response.json())
+            .then(response => setCityData(response))
+        }
+
+        if (city) {
+            const currentCity = cityData.filter(obj => obj.name === city ? true : false)
+            console.log(currentCity)
+            setCenter([currentCity[0].latitude, currentCity[0].longitude])
+            setMapIsVisible(true)
+        }
+        else setMapIsVisible(false)
+
+        console.log(cityData)
+    }, [isUser, action, signIn, photos, city, position, cityData])
 
     if (!signIn) {
         return (
@@ -172,9 +217,28 @@ const Form = ({signIn}) => {
                 )}
                 {isUser ? null : (
                     <div className="form-field">
-                        <input value={city} onChange={(e) => setCity(e.target.value)} type="text" name="city" placeholder="Insira a cidade" />
+                        <select name='city' value={city} onChange={(e) => setCity(e.target.value)}>
+                            <option value={null}>Selecione uma cidade</option>
+                            {cityData ? cityData.map(city => (
+                                <option key={city.id} value={city.name}>{city.name}</option>
+                            )) : null}
+                        </select>
                     </div>
                 )}
+                {mapIsVisible && isUser === false ? (
+                    <MapContainer
+                        center={[50.5, 30.5]}
+                        zoom={13} 
+                        scrollWheelZoom={false}
+                    >
+                        <TileLayer
+                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        />
+                        <LocationMarker otherSetPosition={setPosition}/>
+                        <SetCenter center={center}/>
+                    </MapContainer>
+                ) : null}
                 {isUser ? null : (
                     <div className="form-field form-field-input">
                         {inputElements.map((element) => element)}

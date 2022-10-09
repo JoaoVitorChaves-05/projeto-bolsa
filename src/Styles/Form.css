@@ -45,7 +45,7 @@
     font-size: 16px;
     font-weight: 500;
 }
-.form-centered input{
+.form-centered input, .form-centered select {
     height: 50px;
     width: 100%;
     background-color: rgba(255,255,255,0.07);
@@ -58,7 +58,12 @@
     border: 1px solid rgb(0, 0, 0);
 }
 
-.form-centered input:first-child {
+.form-centered input[type="file"] {
+    border: none;
+    height: 25px;
+}
+
+.form-centered input:first-child, .form-centered .form-field select {
     margin-top: 20px;
 }
 

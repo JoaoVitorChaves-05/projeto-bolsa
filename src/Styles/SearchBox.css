@@ -3,7 +3,7 @@
     flex-direction: row;
 }
 
-.search-area form .form-field input {
+.search-area form .form-field select {
     flex: 1;
     height: 40px;
     font-size: 1.2rem;
@@ -26,4 +26,6 @@
     cursor: pointer;
 
     outline: none;
+
+    padding: 5px;
 }

@@ -2,6 +2,7 @@ import '../Styles/Home.css'
 import Header from '../Components/Header.js'
 import Footer from '../Components/Footer.js'
 import SearchBox from '../Components/SearchBox.js'
+import Map from '../Components/Map.js'
 
 const Home = () => {
     return (
@@ -20,6 +21,9 @@ const Home = () => {
           <div className="main search-area">
             <h2>Pesquise por lugares na sua cidade</h2>
             <SearchBox />
+          </div>
+          <div className='main'>
+            <Map />
           </div>
           <div className="main">
             <h2>Objetivo do projeto</h2>
