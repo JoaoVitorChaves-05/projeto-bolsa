@@ -124,7 +124,9 @@ class Server {
                 email VARCHAR NOT NULL,
                 password_hash VARCHAR NOT NULL,
                 address VARCHAR NOT NULL,
-                city VARCHAR NOT NULL
+                id_city INTEGER NOT NULL,
+                latitude FLOAT8 NOT NULL,
+                longitude FLOAT8 NOT NULL
             )`)
     
             await this.database.query(`CREATE TABLE IF NOT EXISTS Comments (
@@ -132,7 +134,17 @@ class Server {
                 id_user INTEGER NOT NULL,
                 id_place INTEGER NOT NULL,
                 comment VARCHAR,
-                grade INTEGER NOT NULL,
+                entranceGrade INTEGER NOT NULL,
+                bathroomGrade INTEGER NOT NULL,
+                interiorGrade INTEGER NOT NULL,
+                parkingGrade INTEGER NOT NULL,
+                timestamp TIMESTAMP
+            )`)
+
+            await this.database.query(`CREATE TABLE IF NOT EXISTS Feedback (
+                id SERIAL PRIMARY KEY,
+                id_comment INTEGER NOT NULL,
+                feedback VARCHAR NOT NULL,
                 timestamp TIMESTAMP
             )`)
     
@@ -152,6 +164,13 @@ class Server {
                 id SERIAL PRIMARY KEY,
                 id_user INTEGER NOT NULL,
                 token VARCHAR NOT NULL
+            )`)
+
+            await this.database.query(`CREATE TABLE IF NOT EXISTS Cities (
+                id SERIAL PRIMARY KEY,
+                latitude FLOAT8 NOT NULL,
+                longitude FLOAT8 NOT NULL,
+                name VARCHAR NOT NULL
             )`)
     
         } catch(e) {
@@ -178,13 +197,13 @@ class Server {
     } 
 
     // IMPLEMENTAR A ADIÇÃO DE FOTOS - IMPLEMENTADO
-    async createPlace({placename, email, password, photos, address, city}) {
+    async createPlace({placename, email, password, photos, address, id_city, position}) {
         const passwordHash = await bcrypt.hash(password, 8)
 
         try {
             const {rows} = await this.database.query(`
-            INSERT INTO Places (placename, email, password_hash, address, city)
-            VALUES ('${placename}', '${email}' ,'${passwordHash}', '${address}', '${city}')
+            INSERT INTO Places (placename, email, password_hash, address, id_city, latitude, longitude)
+            VALUES ('${placename}', '${email}' ,'${passwordHash}', '${address}', ${id_city}, ${position.latitude}, ${position.longitude})
             RETURNING *
             `)
 
@@ -217,18 +236,41 @@ class Server {
         }
     }
 
-    async createComment({token, id_place, comment, grade, timestamp}) {
+    async createComment({token, id_place, comment, entranceGrade, bathroomGrade, interiorGrade, parkingGrade, timestamp}) {
         const result = await this.validateInstance(token, 'user')
 
         if (result.success) {
             await this.database.query(`
-            INSERT INTO Comments (id_user, id_place, comment, grade, timestamp)
-            VALUES (${result.id_instance}, ${id_place}, '${comment}', ${grade}, '${timestamp}')
+            INSERT INTO Comments (id_user, id_place, comment, entranceGrade, bathroomGrade, interiorGrade, parkingGrade, timestamp)
+            VALUES (${result.id_instance}, ${id_place}, '${comment}', ${entranceGrade}, ${bathroomGrade}, ${interiorGrade}, ${parkingGrade}, '${timestamp}')
             `)
 
             return {
                 success: true
             }
+        }
+
+        return { success: false }
+    }
+
+    async createFeedback({token, feedback, timestamp, id_comment}) {
+        const result = await this.validateInstance(token, 'place')
+
+        if (result.success) {
+            const comments = await this.database.query(`
+            SELECT id, id_place FROM Comments WHERE id_place = ${result.id_instance} AND id = ${id_comment}
+            `)
+
+            if (comments.rows.length) {
+                await this.database.query(`
+                INSERT INTO Feedback (id_comment, feedback, timestamp)
+                VALUES (${id_comment}, '${feedback}', '${timestamp}')
+                `)
+    
+                return {
+                    success: true
+                }
+            } 
         }
 
         return { success: false }
@@ -280,19 +322,36 @@ class Server {
         return rows
     }
 
+    async getCities() {
+
+        const { rows } = await this.database.query(`SELECT * FROM Cities`)
+
+        return rows
+    }
+
     async getPlaces({city}) {
         const places = []
 
-        await this.database.query(`
-        SELECT * FROM Places WHERE city = '${city}'
-        `).then(async results => {
-            for (let place of results.rows) {
-                await this.database.query(`
-                SELECT * FROM Photos WHERE id_place = ${place.id}
-                `).then(el => places.push({place_details: place, photos: el.rows}))
-            }
-        })
-        
+        if (city) {
+            const id_city = await this.database.query(`SELECT id FROM Cities WHERE name = '${city}'`)
+
+            await this.database.query(`
+            SELECT * FROM Places WHERE id_city = ${id_city.rows[0].id}
+            `).then(async results => {
+                for (let place of results.rows) {
+                    await this.database.query(`
+                    SELECT * FROM Photos WHERE id_place = ${place.id}
+                    `).then(el => places.push({place_details: place, photos: el.rows}))
+                }
+            })
+        }
+        else
+            await this.database.query(`
+            SELECT * FROM Places
+            `).then(results => {
+                for (let place of results.rows)
+                    places.push({latitude: place.latitude, longitude: place.longitude, placename: place.placename})
+            })
         console.log(places)
         return places
     }
@@ -329,8 +388,8 @@ class Server {
             const id = currentPlace.rows[0].id_place
 
             const data = await this.database.query(`
-            SELECT * FROM Places
-            WHERE id = ${id}
+            SELECT P.*, C.name FROM Places AS P, Cities AS C
+            WHERE P.id = ${id} AND P.id_city = C.id
             `)
 
             const photos = await this.database.query(`
@@ -356,13 +415,15 @@ class Server {
 
         try {
             let { rows } = await this.database.query(`
-            SELECT comment, grade, timestamp, id_place, U.username FROM Comments AS C
+            SELECT C.id, comment, entranceGrade, bathroomGrade, interiorGrade, parkingGrade, C.timestamp, id_place, U.username, F.feedback FROM Comments AS C
             LEFT JOIN Users AS U ON C.id_user = U.id
+            LEFT JOIN Feedback AS F ON C.id = F.id_comment
             WHERE C.id_place = ${id_place};
             `)
-
             return rows
-        } catch {
+            
+        } catch(e) {
+            console.log(e)
             return []
         }
     }
