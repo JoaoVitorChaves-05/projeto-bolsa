@@ -18,7 +18,13 @@
     text-align: center;
 }
 
-.form-profile .form-field input {
+.form-profile #comments {
+    max-height: 400px;
+    overflow-y: scroll;
+}
+
+.form-profile .form-field input,
+.form-profile .form-field select {
     height: 40px;
     outline: none;
 

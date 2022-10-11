@@ -162,8 +162,6 @@ const Place = () => {
                                 <p>{data.current.place_details.city}</p>
                             </div>
                         </div>
-                    </div>
-                    <div className="comments-area item-container">
                         <h2>Comentários</h2>
                         {isVisible ? <button onClick={handleWriteComment}>Cancelar comentário</button> : <button onClick={handleWriteComment}>Escrever comentário</button>}
                         {isVisible ? (
@@ -180,6 +178,9 @@ const Place = () => {
                                 <button onClick={handleSubmitComment}>Comentar</button>
                             </div>
                         ) : null}
+                    </div>
+                    <div className="comments-area item-container">
+                        
                         <div className="comments-container">
                             {comments ? comments.map((comment, index) => (
                                 <div key={index} className="item-comment">

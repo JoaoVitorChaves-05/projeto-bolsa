@@ -28,6 +28,7 @@ const Modal = ({isVisible, commentProps, controllState}) => {
 
                 if (response.success) window.alert('Resposta enviada!')
                 else window.alert('Erro ao enviar resposta!')
+                controllState({ isVisible: false, commentProps: null })
             })
             .catch(error => console.log(error))
 

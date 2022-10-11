@@ -262,7 +262,7 @@ const Profile = () => {
                         <div className='form-field'>
                             <h2>Avaliações</h2>            
                         </div>
-                        <div className='form-field comments-area'>
+                        <div id='comments' className='form-field comments-area'>
                         {comments ? comments.map((comment) => (
                                 <div key={comment.id} className="item-comment">
                                     <h3>{comment.username}</h3>
