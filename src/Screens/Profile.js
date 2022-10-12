@@ -30,17 +30,17 @@ const Profile = () => {
     const handlePhoto = (event) => setPhotos([...photos, event.target.files[0]])
     
     const handleDelete = async (id) => {
-        if (window.confirm('Are you sure you want to delete this photo?')) {
+        if (window.confirm('Você tem certeza que quer deletar essa foto?')) {
             const formData = new FormData()
             formData.append('id_photo', id)
             formData.append('token', token)
             
-            const result = await fetch('http://localhost:80/api/photo', {method: 'DELETE', body: formData})
+            const result = await fetch('http://localhost:5000/api/photo', {method: 'DELETE', body: formData})
             .then(response => response.json())
             .then(response => response)
 
             if (!result.success) {
-                window.alert('Something went wrong with deleting')
+                window.alert('Algo deu errado, tente novamente mais tarde.')
             } else {
                 window.location.reload()
             }
@@ -89,13 +89,13 @@ const Profile = () => {
     useEffect(() => {
 
         if (!cityData) {
-            fetch('http://localhost:80/api/cities')
+            fetch('http://localhost:5000/api/cities')
             .then((response) => response.json())
             .then((response) => setCityData(response))
         }
 
         if (!isLogged) {
-            fetch('http://localhost:80/api/auth/token', { method: 'POST', body: JSON.stringify({token: token}), headers: {
+            fetch('http://localhost:5000/api/auth/token', { method: 'POST', body: JSON.stringify({token: token}), headers: {
                 "Content-type": "application/json; charset=UTF-8"
             }})
             .then(response => response.json())
@@ -107,7 +107,7 @@ const Profile = () => {
             }).catch(error => console.log(error))
         } else {
             console.log('você está logado')
-            fetch(`http://localhost:80/api/${isUser ? 'user' : 'place'}?token=` + token, { method: 'GET'})
+            fetch(`http://localhost:5000/api/${isUser ? 'user' : 'place'}?token=` + token, { method: 'GET'})
             .then(response => response.json())
             .then(response => {
                 console.log(response)
@@ -126,7 +126,7 @@ const Profile = () => {
                     setInitialPosition({latitude, longitude})
                     setId(id)
 
-                    fetch(`http://localhost:80/api/comment?id_place=${id}`)
+                    fetch(`http://localhost:5000/api/comment?id_place=${id}`)
                     .then(response => response.json())
                     .then(response => setComments(response))
                 }
@@ -166,7 +166,7 @@ const Profile = () => {
                     filteredPhotos.forEach(photo => formData.append('photos', photo))
                 }
 
-                fetch('http://localhost:80/api/update/' + (isUser ? 'user' : 'place'), { method: 'POST', body: formData}).then(response => response.json())
+                fetch('http://localhost:5000/api/update/' + (isUser ? 'user' : 'place'), { method: 'POST', body: formData}).then(response => response.json())
                 .then(response => {
                     console.log(response)
                     response.success ? window.location.reload() : window.alert('Erro ao atualizar dados!')
@@ -178,7 +178,7 @@ const Profile = () => {
                 window.location.href = '/'
             },
             excludeData: () => {
-                fetch('http://localhost:80/api/' + (isUser ? 'user' : 'place'), { method: 'DELETE', body: JSON.stringify({token}), headers: { 
+                fetch('http://localhost:5000/api/' + (isUser ? 'user' : 'place'), { method: 'DELETE', body: JSON.stringify({token}), headers: { 
                     "Content-type": "application/json; charset=UTF-8"
                 }}).then(response => response.json())
                 .then(response => {
@@ -303,7 +303,7 @@ const Profile = () => {
                         </div>
                         {photosURL.map((photo) => (
                             <div key={photo.id} className="form-field image-item">
-                                <img src={'http://localhost:80' + photo.photo_url} />
+                                <img src={'http://localhost:5000' + photo.photo_url} />
                                 <AiFillDelete onClick={() => handleDelete(photo.id)} size="48px" className='image-icon'/>
                             </div>
                         ))}

@@ -34,7 +34,7 @@ const Place = () => {
 
     const fetchData = async (id) => {
         try {
-            let get = await fetch('http://localhost:80/api/place?id=' + id)
+            let get = await fetch('http://localhost:5000/api/place?id=' + id)
             let json = await get.json()
             data.current = json
             setInterval(() => {
@@ -52,7 +52,7 @@ const Place = () => {
 
     const fetchComments = async (id) => {
         try {
-            const data = await fetch('http://localhost:80/api/comment?id_place=' + id)
+            const data = await fetch('http://localhost:5000/api/comment?id_place=' + id)
             .then((response) => response.json())
             .then((results) => {
                 setComments(results)
@@ -107,7 +107,7 @@ const Place = () => {
             formData.append('parkingGrade', parkingGrade)
             formData.append('timestamp', timestamp.toJSON())
             formData.append('id_place', searchParams)   
-            await fetch('http://localhost:80/api/comment', { method: 'POST', body: formData})
+            await fetch('http://localhost:5000/api/comment', { method: 'POST', body: formData})
             .then(response => response.json())
             .then(result => {
                 if (result.success) {
@@ -147,7 +147,7 @@ const Place = () => {
                 <Header />
                 <main className="container">
                     <div className="data-area item-container">
-                        <img src={"http://localhost:80" + data.current.photos[currentIndex].photo_url} />
+                        <img src={"http://localhost:5000" + data.current.photos[currentIndex].photo_url} />
                         <h2>{data.current.place_details.placename}</h2>
                         <div className="item-data">
                             <AiFillMail size={"32px"}/>

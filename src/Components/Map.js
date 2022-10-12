@@ -35,7 +35,7 @@ const Map = () => {
         }
 
         if (!markers.length) {
-            fetch('http://localhost:80/api/places')
+            fetch('http://localhost:5000/api/places')
             .then(response => response.json())
             .then(response => {
                 setMarkers([...response])

@@ -13,7 +13,7 @@ const SearchBox = ({initialSearch}) => {
 
     useEffect(() => {
         if (!cityData) {
-            fetch('http://localhost:80/api/cities')
+            fetch('http://localhost:5000/api/cities')
             .then((response) => response.json())
             .then((response) => setCityData(response))
         }

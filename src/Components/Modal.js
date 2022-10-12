@@ -21,7 +21,7 @@ const Modal = ({isVisible, commentProps, controllState}) => {
             form.append('timestamp', timestamp.toJSON())
             form.append('token', token)
 
-            fetch('http://localhost:80/api/feedback', {method: 'POST', body: form})
+            fetch('http://localhost:5000/api/feedback', {method: 'POST', body: form})
             .then(response => response.json())
             .then(response => {
                 console.log(response)

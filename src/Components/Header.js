@@ -8,7 +8,7 @@ const Header = ({isProfile}) => {
 
     useEffect(() => {
         if (!isLogged) {
-            fetch('http://localhost:80/api/auth/token', { method: 'POST', body: JSON.stringify({token: token}), headers: {
+            fetch('http://localhost:5000/api/auth/token', { method: 'POST', body: JSON.stringify({token: token}), headers: {
                 "Content-type": "application/json; charset=UTF-8"
             }})
             .then(response => response.json())
@@ -21,7 +21,7 @@ const Header = ({isProfile}) => {
     if (!isProfile)
         return (
             <header className="header">
-                <h1 className="title"><Link className="nav-title" to={`/`}>Título</Link></h1>
+                <h1 className="title"><Link className="nav-title" to={`/`}>Acessibilidade</Link></h1>
                 {isLogged ? (
                     <nav className="navigation">
                         <Link className="nav-item" to={`/Profile`}>Perfil</Link>

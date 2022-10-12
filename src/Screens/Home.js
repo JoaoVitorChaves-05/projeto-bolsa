@@ -28,16 +28,14 @@ const Home = () => {
           <div className="main">
             <h2>Objetivo do projeto</h2>
             <p>
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam ut
-              nibh vitae justo pulvinar ultrices. Sed eu auctor erat, at posuere
-              purus. Nullam est leo, tincidunt at mattis at, interdum eget
-              lorem. Etiam efficitur tellus vel luctus ullamcorper. Quisque id
-              ipsum nec ante vehicula sagittis. Aenean bibendum augue id
-              sollicitudin dignissim. Vestibulum eget velit elementum, ultricies
-              eros in, congue felis. Maecenas at ante at lacus scelerisque
-              fringilla. Proin nec ligula id lacus ornare semper. Vestibulum
-              iaculis lacus eu cursus pellentesque. Mauris quis mauris massa.
-              Maecenas tincidunt mi eu nisi hendrerit condimentum at vitae orci.
+            De acordo com o Censo demográfico de 2010, cerca de 46 milhões de pessoas declaram
+            ter algum tipo de deficiência no Brasil. Mesmo com esse número expressivo, as condições
+            de acessibilidades oferecidas ao portador de deficiência são incipientes e precárias. 
+            Quando o foco são os cadeirantes, essa significativa parcela da população se encontra impedida 
+            de exercer plenamente sua cidadania, uma vez que encontra sérias dificuldades para se locomover 
+            em estabelecimentos e espaço urbano devido a barreiras arquitetônicas. 
+            Diante dessa realidade da acessibilidade no Brasil, foi desenvolvida esta plataforma web focada em facilitar 
+            a identificação de locais com melhor acesso a pessoas cadeirantes e com mobilidade reduzida.
             </p>
           </div>
         </main>

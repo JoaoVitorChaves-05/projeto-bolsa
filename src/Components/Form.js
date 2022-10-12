@@ -128,7 +128,7 @@ const Form = ({signIn}) => {
     })])
 
     const [isUser, setIsUser] = useState(true)
-    const [action, setAction] = useState('http://localhost:80/api/auth/user')
+    const [action, setAction] = useState('http://localhost:5000/api/auth/user')
     const [username, setUsername] = useState('')
     const [placename, setPlacename] = useState('')
     const [email, setEmail] = useState('')
@@ -150,20 +150,20 @@ const Form = ({signIn}) => {
     useEffect(() => {
         if (isUser) {
             if (signIn) {
-                setAction('http://localhost:80/api/auth/user')
+                setAction('http://localhost:5000/api/auth/user')
             } else {
-                setAction('http://localhost:80/api/user')
+                setAction('http://localhost:5000/api/user')
             }
         } else {
             if (signIn) {
-                setAction('http://localhost:80/api/auth/place')
+                setAction('http://localhost:5000/api/auth/place')
             } else {
-                setAction('http://localhost:80/api/place')
+                setAction('http://localhost:5000/api/place')
             }
         }
 
         if (!cityData) {
-            fetch('http://localhost:80/api/cities')
+            fetch('http://localhost:5000/api/cities')
             .then(response => response.json())
             .then(response => setCityData(response))
         }
