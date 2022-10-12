@@ -433,7 +433,7 @@ class Server {
 
         if (success) {
             const keys = Object.keys(dataToUpdate)
-
+            console.log(keys)
             keys.forEach( async key => {
 
                 if (key != 'password')
@@ -443,17 +443,18 @@ class Server {
                     WHERE id = ${id_instance}
                     `)
                 else {
-                    if (dataToUpdate.password !== '') return { success: false}
+                    if (dataToUpdate.password === '') return { success: false}
                     const passwordHash = await bcrypt.hash(dataToUpdate[key], 8)
                     await this.database.query(`
                     UPDATE Users
                     SET password_hash = '${passwordHash}'
                     WHERE id = ${id_instance}
                     `)
+                    console.log(passwordHash)
                 }
-
             })
 
+            console.log('success')
             return {
                 success: true,
             }
