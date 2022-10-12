@@ -47,10 +47,10 @@ app.get('/api/users', async (req, res) => {
 })
 
 app.post('/api/update/user', async (req, res) => {
-    const { token } = req.body
+    const { token, username, password, email } = req.body
 
     try {
-        const result = await server.updateUser({token, dataToUpdate: req.body.dataToUpdate})
+        const result = await server.updateUser({token, dataToUpdate: {username, password, email}})
 
         res.json(result)
     } catch (err) {
