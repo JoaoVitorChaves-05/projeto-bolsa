@@ -203,9 +203,9 @@ class Server {
         try {
             const {rows} = await this.database.query(`
             INSERT INTO Places (placename, email, password_hash, address, id_city, latitude, longitude)
-            VALUES ('${placename}', '${email}' ,'${passwordHash}', '${address}', ${id_city}, ${position.latitude}, ${position.longitude})
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING *
-            `)
+            `, [placename, email, passwordHash, address, id_city, position])
 
             try {
                 photos.forEach(async photo => {
@@ -215,8 +215,8 @@ class Server {
                         if (err) return err
                         await this.database.query(`
                         INSERT INTO Photos (id_place, photo_url)
-                        VALUES (${rows[0].id}, '${'/uploads/' + filename}')
-                        `)
+                        VALUES ($1, $2)
+                        `, [rows[0].id, '/uploads/' + filename])
                     })
                 })
             } catch {
@@ -227,8 +227,8 @@ class Server {
                     if (err) return err
                     await this.database.query(`
                     INSERT INTO Photos (id_place, photo_url)
-                    VALUES (${rows[0].id}, '${'/uploads/' + filename}')
-                    `)
+                    VALUES ($1, $2)
+                    `, [rows[0].id, '/uploads/' + filename])
                 })
             }
         } catch (error) {
@@ -242,8 +242,8 @@ class Server {
         if (result.success) {
             await this.database.query(`
             INSERT INTO Comments (id_user, id_place, comment, entranceGrade, bathroomGrade, interiorGrade, parkingGrade, timestamp)
-            VALUES (${result.id_instance}, ${id_place}, '${comment}', ${entranceGrade}, ${bathroomGrade}, ${interiorGrade}, ${parkingGrade}, '${timestamp}')
-            `)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            `, [result.id_instance, id_place, comment, entranceGrade, bathroomGrade, interiorGrade, parkingGrade, timestamp])
 
             return {
                 success: true
@@ -258,14 +258,14 @@ class Server {
 
         if (result.success) {
             const comments = await this.database.query(`
-            SELECT id, id_place FROM Comments WHERE id_place = ${result.id_instance} AND id = ${id_comment}
-            `)
+            SELECT id, id_place FROM Comments WHERE id_place = $1 AND id = $2
+            `, [result.id_instance, id_comment])
 
             if (comments.rows.length) {
                 await this.database.query(`
                 INSERT INTO Feedback (id_comment, feedback, timestamp)
-                VALUES (${id_comment}, '${feedback}', '${timestamp}')
-                `)
+                VALUES ($1, $2, $3)
+                `, [id_comment, feedback, timestamp])
     
                 return {
                     success: true
@@ -281,8 +281,8 @@ class Server {
         if (id) {
             let { rows } = await this.database.query(`
             SELECT * FROM Users
-            WHERE id = ${id}
-            `)
+            WHERE id = $1
+            `, [id])
 
             rows.forEach(row => {
                 row.email = null
@@ -294,13 +294,13 @@ class Server {
         } else if (token) {
             const loggedUser = await this.database.query(`
             SELECT * FROM LoggedUsers 
-            WHERE token = '${token}'
-            `)
+            WHERE token = $1
+            `, [token])
 
             const user = await this.database.query(`
             SELECT * FROM Users
-            WHERE id = ${loggedUser.rows[0].id_user}
-            `)
+            WHERE id = $1
+            `, [loggedUser.rows[0].id_user])
 
             user.rows[0].password_hash = null
 
@@ -333,15 +333,15 @@ class Server {
         const places = []
 
         if (city) {
-            const id_city = await this.database.query(`SELECT id FROM Cities WHERE name = '${city}'`)
+            const id_city = await this.database.query(`SELECT id FROM Cities WHERE name = $1`, [city])
 
             await this.database.query(`
             SELECT * FROM Places WHERE id_city = ${id_city.rows[0].id}
             `).then(async results => {
                 for (let place of results.rows) {
                     await this.database.query(`
-                    SELECT * FROM Photos WHERE id_place = ${place.id}
-                    `).then(el => places.push({place_details: place, photos: el.rows}))
+                    SELECT * FROM Photos WHERE id_place = $1
+                    `, [place.id]).then(el => places.push({place_details: place, photos: el.rows}))
                 }
             })
         }
@@ -360,13 +360,13 @@ class Server {
         if (id) {
             const currentPlace = await this.database.query(`
             SELECT * FROM Places
-            WHERE id = ${id}
-            `)
+            WHERE id = $1
+            `, [id])
 
             const photos = await this.database.query(`
             SELECT * FROM Photos
-            WHERE id_place = ${id}
-            `)
+            WHERE id_place = $1
+            `, [id])
 
             currentPlace.rows[0].password_hash = null
 
@@ -382,20 +382,20 @@ class Server {
         } else if (token) {
             const currentPlace = await this.database.query(`
             SELECT * FROM LoggedPlaces
-            WHERE token ='${token}'
-            `)
+            WHERE token = $1
+            `, [token])
 
             const id = currentPlace.rows[0].id_place
 
             const data = await this.database.query(`
             SELECT P.*, C.name FROM Places AS P, Cities AS C
-            WHERE P.id = ${id} AND P.id_city = C.id
-            `)
+            WHERE P.id = $1 AND P.id_city = C.id
+            `, [id])
 
             const photos = await this.database.query(`
             SELECT * FROM Photos
-            WHERE id_place = ${id}
-            `)
+            WHERE id_place = $1
+            `, [id])
 
             data.rows[0].password_hash = null
 
@@ -418,8 +418,8 @@ class Server {
             SELECT C.id, comment, entranceGrade, bathroomGrade, interiorGrade, parkingGrade, C.timestamp, id_place, U.username, F.feedback FROM Comments AS C
             LEFT JOIN Users AS U ON C.id_user = U.id
             LEFT JOIN Feedback AS F ON C.id = F.id_comment
-            WHERE C.id_place = ${id_place};
-            `)
+            WHERE C.id_place = $1;
+            `, [id_place])
             return rows
             
         } catch(e) {
@@ -439,17 +439,17 @@ class Server {
                 if (key != 'password')
                     await this.database.query(`
                     UPDATE Users
-                    SET ${key} = '${dataToUpdate[key]}'
-                    WHERE id = ${id_instance}
-                    `)
+                    SET $1 = $2
+                    WHERE id = $3
+                    `, [key, dataToUpdate[key], id_instance])
                 else {
                     if (dataToUpdate.password === '') return { success: false}
                     const passwordHash = await bcrypt.hash(dataToUpdate[key], 8)
                     await this.database.query(`
                     UPDATE Users
-                    SET password_hash = '${passwordHash}'
-                    WHERE id = ${id_instance}
-                    `)
+                    SET password_hash = $1
+                    WHERE id = $2
+                    `, [passwordHash, id_instance])
                     console.log(passwordHash)
                 }
             })
@@ -481,17 +481,17 @@ class Server {
                         console.log(passwordHash)
                         await this.database.query(`
                         UPDATE Places
-                        SET password_hash = '${passwordHash}'
-                        WHERE id = ${id_instance}
-                        `)
+                        SET password_hash = $1
+                        WHERE id = $2
+                        `, [passwordHash, id_instance])
                     }
                     else if (key !== 'password') {
                         console.log(dataToUpdate[key])
                         await this.database.query(`
                         UPDATE Places
-                        SET ${key} = '${dataToUpdate[key]}'
-                        WHERE id = ${id_instance}
-                        `)
+                        SET $1 = $2
+                        WHERE id = $3
+                        `, [key, dataToUpdate[key], id_instance])
                     }
                 })
 
@@ -503,8 +503,8 @@ class Server {
                             if (err) return err
                             await this.database.query(`
                             INSERT INTO Photos (id_place, photo_url)
-                            VALUES (${id_instance}, '${'/uploads/' + filename}')
-                            `)
+                            VALUES ($1, $2)
+                            `, [id_instance, '/uploads/' + filename])
                         })
                     })
                 } catch {
@@ -514,7 +514,7 @@ class Server {
                         if (err) return err
                         await this.database.query(`
                         INSERT INTO Photos (id_place, photo_url)
-                        VALUES (${id_instance}, '${'/uploads/' + filename}')
+                        VALUES ($1, $2)
                         `)
                     })
                 }
@@ -530,11 +530,11 @@ class Server {
         if (success) {
             await this.database.query(`
             UPDATE Comments
-            SET comment = "${comment}",
-            timestamp = ${new Date().toJSON()},
-            grade = ${grade}
-            WHERE id = ${id_comment} AND id_user = ${id_instance}
-            `)
+            SET comment = $1,
+            timestamp = $2,
+            grade = $3
+            WHERE id = $4 AND id_user = $5
+            `, [comment, new Date().toJSON(), grade, id_comment, id_instance])
 
             return { success: true }
         }
@@ -548,8 +548,8 @@ class Server {
         if (success) {
             await this.database.query(`
             DELETE FROM Users
-            WHERE id = ${id_instance}
-            `)
+            WHERE id = $1
+            `, [id_instance])
 
             return { success: true }
         }
@@ -563,8 +563,9 @@ class Server {
         if (success) {
             await this.database.query(`
             DELETE FROM Places
-            WHERE id = ${id_instance}
-            `)
+            WHERE id = $1
+            `, [id_instance])
+            
             return { success: true }
         }
 
@@ -577,8 +578,8 @@ class Server {
         if (success) {
             await this.database.query(`
             DELETE FROM Comments
-            WHERE id_user = ${id_instance} AND id = ${id_comment}
-            `)
+            WHERE id_user = $1 AND id = $2
+            `, [id_instance, id_comment])
 
             return { success: true }
         }
@@ -592,16 +593,16 @@ class Server {
         if (success) {
             let {rows} = await this.database.query(`
                 SELECT * FROM Photos
-                WHERE id = ${id_photo}
-            `)
+                WHERE id = $1
+            `, [id_photo])
 
             console.log('./public' + rows[0].photo_url)
             fs.unlinkSync('./public' + rows[0].photo_url)
 
             await this.database.query(`
                 DELETE FROM Photos
-                WHERE id = ${id_photo}
-            `)
+                WHERE id = $1
+            `, [id_photo])
 
             return { success: true }
         }
@@ -613,8 +614,8 @@ class Server {
         let obj
         try {
             obj = await this.database.query(`
-            SELECT * FROM Users WHERE email = '${email}'
-            `)
+            SELECT * FROM Users WHERE email = $1
+            `, [email])
 
             let row = obj.rows[0]
             console.log(row)
@@ -627,8 +628,8 @@ class Server {
 
                     await this.database.query(`
                     INSERT INTO LoggedUsers (id_user, token)
-                    VALUES (${row.id}, '${token}')
-                    `)
+                    VALUES ($1, $2)
+                    `, [row.id, token])
                     console.log('User was found')
                     return {token, success: true}
                 } else {
@@ -643,8 +644,8 @@ class Server {
 
     async authenticatePlace({email, password}) {
         let {rows} = await this.database.query(`
-        SELECT * FROM Places WHERE email = '${email}'
-        `)
+        SELECT * FROM Places WHERE email = $1
+        `, [email])
 
         try {
             for (let i = 0; i < rows.length; i++) {
@@ -656,12 +657,11 @@ class Server {
     
                         await this.database.query(`
                         INSERT INTO LoggedPlaces (id_place, token)
-                        VALUES (${rows[i].id}, '${token}')
-                        `)
+                        VALUES ($1, $2)
+                        `, [rows[i].id, token])
     
                         return {token, success: true}
                     } else {
-                        console.log('Any user has founded!')
                         return {success: false, message: 'Email ou senha incorretos'}
                     }
                 } else return {success: false, message: 'Email ou senha incorretos'}
@@ -677,19 +677,19 @@ class Server {
     async authenticateToken({token}) {
         const user = await this.database.query(`
         SELECT * FROM LoggedUsers
-        WHERE token='${token}'
-        `)
+        WHERE token= $1
+        `, [token])
 
         const place = await this.database.query(`
         SELECT * FROM LoggedPlaces
-        WHERE token='${token}'
-        `)
+        WHERE token = $1
+        `, [token])
 
         if (user.rows[0]) {
             let { rows } = await this.database.query(`
             SELECT * FROM Users
-            WHERE id = ${user.rows[0].id_user}
-            `)
+            WHERE id = $1
+            `, [user.rows[0].id_user])
 
             if (rows[0]) {
                 return { authorized: true, isUser: true }
@@ -702,8 +702,8 @@ class Server {
 
             let { rows } = await this.database.query(`
             SELECT * FROM Places
-            WHERE id = ${place.rows[0].id_place}
-            `)
+            WHERE id = $1
+            `, [place.rows[0].id_place])
 
             if (rows[0]) {
                 return { authorized: true, isUser: false }
