@@ -11,6 +11,15 @@ app.use(bodyParser.urlencoded({ extended: false }))
 app.use(cors())
 app.use(express.static('public'))
 app.use(fileUpload())
+app.use((req, res, next) => {
+    const keys = Object.keys(req.body)
+
+    for (let key of keys) {
+        req.body[key] = server.escapeHTML(req.body[key])
+    }
+
+    next()
+})
 
 // CITY
 app.get('/api/cities', async (req, res) => {

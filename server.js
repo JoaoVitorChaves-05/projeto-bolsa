@@ -39,6 +39,24 @@ class Server {
         }
     }
 
+    escapeHTML(string) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&#34;',
+            "'": '&#39;'
+        }
+
+        const repl = (c) => {
+            return map[c]
+        }
+
+        return (function() {
+            return string.replace(/[&<>'"]/g, repl)
+        })()
+    }
+
     createToken() {
         const higher_chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
         const lower_chars = 'abcdefghijklmnopqrstuvwxyz'.split('')
