@@ -37,7 +37,7 @@ const Header = ({isProfile}) => {
     else 
         return (
             <header className="header">
-                <h1 className="title"><Link className="nav-title" to={`/`}>Título</Link></h1>
+                <h1 className="title"><Link className="nav-title" to={`/`}>Acessibilidade</Link></h1>
                 <nav className="navigation">
                     <Link className="nav-item" to={`/`}>Início</Link>
                 </nav>
